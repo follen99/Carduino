@@ -8,7 +8,8 @@ AF_DCMotor motor3(3);
 AF_DCMotor motor4(4);
 #define SPEED 200
 #define ROTATION_SPEED 255
-#define ROTATION_TIME 1250
+//#define ROTATION_TIME 1250      //old duration
+#define ROTATION_TIME 625 //one quarter
 //################ MOTORS ################
 
 
@@ -25,7 +26,11 @@ float distanceToUse;
 
 
 
+
+
 String command;
+
+
 void setup() {
   Serial.begin(9600);
 
@@ -47,17 +52,129 @@ void setup() {
   //################ SENSORE ################
 
 
+/*
+  while (getDistance() > 10) {
+    //no op
+  }
+  goForward();
+
+  delay(1000);
+*/
+
+  firstScan();
+
+
   delay(1000);
 
-
-  //turn(1,ROTATION_TIME);
-
-
-
+  goForward();
 }
 
 
 void loop() {
+  selfDrive2();
+  
+}
+
+void firstScan(){
+  int quarter_time = 700;
+
+  int scans = 9;
+  //int quarter_time = 5500/(scans-1);    //a full turn divided by the scans
+
+  motor1.setSpeed(ROTATION_SPEED);    //velocità del motore
+  motor2.setSpeed(ROTATION_SPEED);    //velocità del motore
+  motor3.setSpeed(ROTATION_SPEED);    //velocità del motore
+  motor4.setSpeed(ROTATION_SPEED);    //velocità del motore
+  
+  int distances[scans];
+  int biggestValue = 0;
+  int biggestIndex = 0;
+
+  int firstMove = 0;
+
+  for (int i = 0; i<scans-1; i++) {
+    turnRight();
+    delay(quarter_time);
+
+    /*
+    stopMotors();
+    delay(100);   //wait for stop*/
+
+    distances[i]  = getDistance();
+  }
+
+  for (int i = 0; i<scans-1; i++) {
+    if(biggestValue < distances[i]){
+      if(distances[i] < 90)
+        biggestValue = distances[i];
+    }
+    Serial.print("Distanza ");
+    Serial.print(i);
+    Serial.print(" ");
+    Serial.println(distances[i]);
+
+  }
+
+  for (int i = 0; i<scans-1; i++) {
+    if(biggestValue == distances[i]){
+      biggestIndex = i;
+    }
+  }
+
+  Serial.print("biggest index: ");
+  Serial.println(biggestIndex);
+  
+
+  firstMove = biggestIndex * quarter_time;
+
+  
+  delay(1000);
+
+  for (int i = 0; i<biggestIndex; i++) {
+    turnRight();
+    delay(quarter_time);
+
+    stopMotors();
+    delay(50);
+  }
+
+
+
+
+  motor1.setSpeed(SPEED);    //velocità del motore
+  motor2.setSpeed(SPEED);    //velocità del motore
+  motor3.setSpeed(SPEED);    //velocità del motore
+  motor4.setSpeed(SPEED);    //velocità del motore
+}
+
+void selfDrive2(){
+  int currentRotation;
+
+  distanceToUse = getDistance();
+  Serial.println(distanceToUse);    //print the distance (cm)
+
+  if(distanceToUse < 20){
+    delay(50);    //wait for double check
+    distanceToUse = getDistance();
+    if (distanceToUse < 20) {
+      //stop the car and go backward
+      stopMotors();
+      goBackward();
+      delay(1000);
+
+      //should turn (few degrees)
+      turn(1, ROTATION_TIME);   //turn one quarter
+      currentRotation += ROTATION_TIME;
+
+      distanceToUse = getDistance();
+      if(distanceToUse > 20){
+        goForward();
+      }
+    }
+  }
+}
+
+void selfDrive1(){
   distanceToUse = getDistance();
   Serial.println(distanceToUse);
 
@@ -87,14 +204,12 @@ void loop() {
       }
     }
   }
-
-  delay(50);
 }
 
 
 
 
-float watchLeft() {
+/*float watchLeft() {
   stepper.step(1200);
 
   float distance = getDistance();
@@ -119,6 +234,20 @@ void turnLeft() {
 }
 void turnRight() {
   stepper.step(-150);
+}*/
+
+void turnLeft(){
+  runMotor(3, 1);
+  runMotor(2, 1);
+  runMotor(1, 0);
+  runMotor(4, 0);
+}
+
+void turnRight(){
+  runMotor(3, 0);
+  runMotor(2, 0);
+  runMotor(1, 1);
+  runMotor(4, 1);
 }
 
 
